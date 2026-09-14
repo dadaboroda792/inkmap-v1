@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import sys
 import uuid
@@ -62,6 +63,34 @@ class MapPayload(BaseModel):
     edges: list = []
     strokes: list = []
     shapes: list = []
+    reveal: int = 1
+
+
+def _atomic_write_json(path: Path, data: dict) -> None:
+    """Атомарная запись JSON: tmp в том же каталоге + fsync + os.replace."""
+    tmp = path.with_name(f"{path.name}.tmp-{uuid.uuid4().hex}")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+            f.flush()
+            try:
+                os.fsync(f.fileno())
+            except OSError:
+                pass
+        os.replace(tmp, path)
+    finally:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _norm_reveal(v) -> int:
+    try:
+        r = int(v)
+    except (TypeError, ValueError):
+        return 1
+    return max(1, min(5, r))
 
 
 app = FastAPI(title="InkMap")
@@ -93,10 +122,14 @@ def list_maps():
 def create_map(payload: CreateMapPayload):
     name = sanitize_name(payload.name)
     path = map_path(name)
-    if path.exists():
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.close(fd)
+    except FileExistsError:
         raise HTTPException(status_code=409, detail="Map already exists")
-    empty = {"version": 1, "meta": {}, "nodes": [], "edges": [], "strokes": []}
-    path.write_text(json.dumps(empty, ensure_ascii=False, indent=2), encoding="utf-8")
+    empty = {"version": 1, "meta": {}, "nodes": [], "edges": [],
+             "strokes": [], "shapes": [], "reveal": 1}
+    _atomic_write_json(path, empty)
     return {"ok": True, "name": name}
 
 
@@ -127,17 +160,19 @@ def save_map(name: str, payload: MapPayload):
         "edges": payload.edges,
         "strokes": payload.strokes,
         "shapes": payload.shapes,
+        "reveal": _norm_reveal(payload.reveal),
     }
-    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    _atomic_write_json(path, data)
     return {"ok": True}
 
 
 @app.delete("/api/maps/{name}")
 def delete_map(name: str):
     path = map_path(name)
-    if not path.exists():
+    try:
+        path.unlink()
+    except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Map not found")
-    path.unlink()
     return {"ok": True}
 
 

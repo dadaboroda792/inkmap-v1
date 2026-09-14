@@ -44,25 +44,58 @@ function normTags(v) {
   return out;
 }
 
+function normColor(v) {
+  if (v === '' || v == null) return '';
+  const s = String(v).trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+  if (PALETTE.includes(s)) return s;
+  return '';
+}
+
+function safeMedia(v) {
+  if (v == null || v === '') return v === '' ? '' : null;
+  const s = String(v).trim();
+  if (s.startsWith('/images/') || s.startsWith('/media/')) return s.slice(0, 256);
+  if (/^https?:\/\/[^\\s]+$/i.test(s)) return s.slice(0, 512);
+  if (/^data:image\/(png|jpeg|jpg|gif|webp);base64,/i.test(s)) return s.slice(0, 512);
+  return null;
+}
+
+function num(v, dflt) {
+  const n = +v;
+  return Number.isFinite(n) ? n : dflt;
+}
+
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+function cleanPatch(patch) {
+  if (!patch || typeof patch !== 'object') return {};
+  const out = {};
+  for (const k of Object.keys(patch)) {
+    if (!UNSAFE_KEYS.has(k)) out[k] = patch[k];
+  }
+  return out;
+}
+
 function normNode(n) {
   const special = Boolean(n.isText || n.isImage);
   const levels = normLevels(n);
   return {
-    id: String(n.id), x: +n.x || 0, y: +n.y || 0,
+    id: n.id != null ? String(n.id) : uid('n'),
+    x: num(n.x, 0), y: num(n.y, 0),
     title: String(n.title ?? '').trim() || (special ? '' : 'Без названия'),
     note: levels[0].text,
     levels,
-    color: n.color ?? '',
-    image: n.image ?? null,
-    audio: n.audio ?? null,
+    color: normColor(n.color),
+    image: safeMedia(n.image),
+    audio: safeMedia(n.audio),
     glowMode: ['off','glow','outline'].includes(n.glowMode) ? n.glowMode : (n.glow ? 'glow' : 'off'),
     isGroup: Boolean(n.isGroup),
     isText: Boolean(n.isText),
     isImage: Boolean(n.isImage),
     font: n.font === 'plain' ? 'plain' : 'hand',
     groupId: n.groupId ? String(n.groupId) : null,
-    w: +n.w || NODE_W,
-    h: +n.h || 84,
+    w: Math.min(1200, Math.max(40, num(n.w, NODE_W) || NODE_W)),
+    h: Math.min(1200, Math.max(24, num(n.h, 84) || 84)),
     collapsed: Boolean(n.collapsed),
     tags: normTags(n.tags),
     isTask: Boolean(n.isTask),
@@ -71,16 +104,32 @@ function normNode(n) {
 }
 
 export function normalizeState(raw = {}) {
-  const nodes = (Array.isArray(raw.nodes) ? raw.nodes : []).map(normNode);
+  const seenNodes = new Set();
+  const nodes = [];
+  for (const n of (Array.isArray(raw.nodes) ? raw.nodes : [])) {
+    const nn = normNode(n);
+    if (seenNodes.has(nn.id)) continue;
+    seenNodes.add(nn.id);
+    nodes.push(nn);
+  }
   const ids = new Set(nodes.map(n => n.id));
-  const edges = (Array.isArray(raw.edges) ? raw.edges : [])
-    .filter(e => ids.has(e.from) && ids.has(e.to))
-    .map(e => ({
-      id: String(e.id), from: e.from, to: e.to,
+  for (const n of nodes) {
+    if (n.groupId && !ids.has(n.groupId)) n.groupId = null;
+  }
+  const seenEdges = new Set();
+  const edges = [];
+  for (const e of (Array.isArray(raw.edges) ? raw.edges : [])) {
+    if (!e || !ids.has(e.from) || !ids.has(e.to)) continue;
+    const id = String(e.id ?? uid('e'));
+    if (seenEdges.has(id)) continue;
+    seenEdges.add(id);
+    edges.push({
+      id, from: e.from, to: e.to,
       fromSide: SIDES.has(e.fromSide) ? e.fromSide : 'auto',
       toSide: SIDES.has(e.toSide) ? e.toSide : 'auto',
       label: String(e.label ?? ''), dashed: Boolean(e.dashed), arrow: e.arrow !== false,
-    }));
+    });
+  }
   const strokes = (Array.isArray(raw.strokes) ? raw.strokes : [])
     .filter(s => Array.isArray(s.points) && s.points.length > 1)
     .map(s => {
@@ -185,7 +234,11 @@ export function addNode(patch = {}) {
 }
 export function updateNode(id, patch) {
   const n = getNode(id); if (!n) return;
+  patch = cleanPatch(patch);
   if (patch.tags !== undefined) patch = { ...patch, tags: normTags(patch.tags) };
+  if (patch.color !== undefined) patch = { ...patch, color: normColor(patch.color) };
+  if (patch.image !== undefined) patch = { ...patch, image: safeMedia(patch.image) };
+  if (patch.audio !== undefined) patch = { ...patch, audio: safeMedia(patch.audio) };
   Object.assign(n, patch);
   if (Array.isArray(patch.levels)) {
     n.levels = normLevels({ levels: patch.levels });
@@ -234,7 +287,7 @@ export function addEdge({ from, to }) {
 }
 export function updateEdge(id, patch) {
   const e = getEdge(id); if (!e) return;
-  Object.assign(e, patch); emit();
+  Object.assign(e, cleanPatch(patch)); emit();
 }
 export function deleteEdge(id) {
   const i = state.edges.findIndex(e => e.id === id);
@@ -287,7 +340,7 @@ export function addStroke(stroke) {
 }
 export function updateStroke(id, patch) {
   const s = getStroke(id); if (!s) return;
-  Object.assign(s, patch); emit();
+  Object.assign(s, cleanPatch(patch)); emit();
 }
 export function deleteStroke(id) {
   const i = state.strokes.findIndex(s => s.id === id); if (i < 0) return;
@@ -304,7 +357,7 @@ export function deleteShape(id) {
 }
 export function updateShape(id, patch) {
   const s = state.shapes.find(s => s.id === id); if (!s) return;
-  Object.assign(s, patch); emit();
+  Object.assign(s, cleanPatch(patch)); emit();
 }
 
 let flushTimer = null;

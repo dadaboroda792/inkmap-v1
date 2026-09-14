@@ -111,10 +111,12 @@ button { font-family: inherit; color: inherit; }
 [data-theme="dark"][data-bg="grid"] #canvas-wrap { opacity: 1; }
 
 #viewport { position: absolute; inset: 0; transform-origin: 0 0; }
-#scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-/* чернила/фигуры поверх нод (переключатель в тулбаре); клики всё равно
-   доходят до нод: у svg pointer-events:none, у интерактивных детей свои */
-body.ink-on-top #scene-svg { z-index: 3; }
+#scene-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#overlay-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+/* чернила/фигуры поверх нод (переключатель в тулбаре); рёбра остаются под
+   нодами, чтобы тонкие линии не перекрывали кнопки. Клики до нод доходят:
+   у оверлея pointer-events:none, у фигур свои */
+body.ink-on-top #overlay-svg { z-index: 3; }
 
 /* ============ nodes ============ */
 .ink-node {

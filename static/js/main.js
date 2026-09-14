@@ -40,7 +40,7 @@ function boot() {
   renderNodes(viewport);
   initInput(wrap, viewport);
   document.addEventListener('spark:nodes-moved', () => renderNodes(viewport));
-  initInk(wrap, svg);
+  initInk(wrap, document.getElementById('overlay-svg'));
   setMode('select');
   initEdgeClicks(wrap);
   initHistory();

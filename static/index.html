@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<title>InkMap — карты</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+<body class="index-page">
+  <div class="container">
+    <header class="brand">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="8" r="2.4"/><circle cx="10" cy="18" r="2.4"/><path d="M8 7.5 15.7 8M7.6 8.2l1.8 7.6M16 9.9l-4.6 6.3"/></svg>
+      <h1>InkMap</h1>
+    </header>
+
+    <form id="create-form" class="create-form">
+      <input id="new-name" type="text" placeholder="Название новой карты..." autocomplete="off" maxlength="100">
+      <button type="submit" class="primary">Создать</button>
+    </form>
+    <div id="error" class="error hidden"></div>
+
+    <ul id="map-list" class="map-list"></ul>
+  </div>
+
+<script src="/static/js/index.js?v=3"></script>
+</body>
+</html>

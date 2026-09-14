@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<title>InkMap</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/style.css?v=3">
+</head>
+<body class="editor-page">
+<header class="topbar">
+  <a class="back" href="/static/index.html" title="Ко всем картам">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </a>
+  <span id="map-title" class="map-name"></span>
+
+  <span class="sep"></span>
+
+  <button id="btn-add-node" class="primary" type="button" title="Новый узел (двойной клик по фону)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    Узел
+  </button>
+  <button id="btn-add-group" class="tool" type="button" title="Новая группа (рамка для нод)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 2.4"/><circle cx="9" cy="10" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="14" r="1.6" fill="currentColor" stroke="none"/></svg>
+    Группа
+  </button>
+
+  <button id="tool-select" class="tool active" type="button" title="Выделение (V)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l7 17 2.5-7.5L21 10z"/></svg>
+  </button>
+  <button id="tool-pen" class="tool" type="button" title="Кисть (P)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+  </button>
+  <button id="tool-eraser" class="tool" type="button" title="Ластик (E)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H7L3 16a1.4 1.4 0 010-2l10-10a1.4 1.4 0 012 0l6 6a1.4 1.4 0 010 2l-9 9"/></svg>
+  </button>
+  <button id="tool-rect" class="tool" type="button" title="Прямоугольник (R)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/></svg>
+  </button>
+  <button id="tool-ellipse" class="tool" type="button" title="Эллипс (O)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="8" ry="6.5"/></svg>
+  </button>
+  <button id="tool-arrow" class="tool" type="button" title="Стрелка (A)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19L19 5M9 5h10v10"/></svg>
+  </button>
+  <button id="tool-text" class="tool" type="button" title="Текст (T)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>
+  </button>
+  <button id="btn-voice" class="tool" type="button" title="Записать голосовую заметку">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10v1a7 7 0 0014 0v-1M12 18v4"/></svg>
+    <span id="voice-timer" class="hidden"></span>
+  </button>
+
+  <span class="sep"></span>
+
+  <div id="reveal-ctl" class="tool-group hidden" title="Глубина заметок">
+    <button id="reveal-minus" type="button">−</button>
+    <span id="reveal-val">1</span>
+    <button id="reveal-plus" type="button">+</button>
+  </div>
+  <button id="btn-search" class="tool" type="button" title="Поиск (Ctrl+K)">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+  </button>
+  <button id="btn-mm" class="tool active" type="button" title="Миникарта">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>
+  </button>
+  <button id="btn-undo" class="tool" type="button" title="Отменить (Ctrl+Z)" disabled>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-15-6.7L3 13"/></svg>
+  </button>
+  <button id="btn-redo" class="tool" type="button" title="Вернуть (Ctrl+Y)" disabled>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0115-6.7L21 13"/></svg>
+  </button>
+
+  <span class="sep"></span>
+
+  <button id="btn-export" class="tool" type="button" title="Скачать карту файлом">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+  </button>
+  <button id="btn-import" class="tool" type="button" title="Открыть карту из файла">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+  </button>
+  <input id="import-file" type="file" accept=".json,application/json" hidden>
+  <button id="btn-import-md" class="tool" type="button" title="Импорт Markdown-файла как дерево">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h3"/><path d="M16 13h-2"/><path d="M8 17h8"/></svg>
+  </button>
+  <input id="import-md-file" type="file" accept=".md,.markdown,.txt" hidden>
+
+  <span class="flex-spacer"></span>
+
+  <div class="bg-picker-wrap">
+    <button id="btn-bg" class="tool" type="button" title="Фон канваса">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="9" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15" r="1.3" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <div id="bg-menu" class="menu hidden">
+      <button data-bg="dots" type="button">Точки</button>
+      <button data-bg="lines" type="button">Линии</button>
+      <button data-bg="grid" type="button">Сетка</button>
+      <button data-bg="plain" type="button">Чистый</button>
+    </div>
+  </div>
+
+  <button id="btn-theme" class="tool" type="button" title="День / Ночь">
+    <svg id="icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
+    <svg id="icon-sun" class="hidden" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+  </button>
+
+  <span id="save-status" class="status"></span>
+</header>
+
+<div id="canvas-wrap">
+  <div id="viewport">
+    <svg id="scene-svg">
+      <defs id="scene-defs"></defs>
+      <g id="ink-g"></g>
+      <g id="shape-g"></g>
+      <g id="edge-g"></g>
+    </svg>
+  </div>
+
+  <div id="ink-bar" class="panel hidden">
+    <div id="brush-row" class="pen-only"></div>
+    <div class="pen-colors pen-only"></div>
+    <input id="pen-width" class="pen-only" type="range" min="1" max="12" step="0.5">
+    <span id="pen-preview" class="pen-preview pen-only"></span>
+    <span class="eraser-only eraser-label">Радиус ластика</span>
+    <input id="eraser-width" class="eraser-only" type="range" min="4" max="48" step="1">
+    <button id="pen-clear" type="button" title="Стереть все штрихи и фигуры">Очистить</button>
+  </div>
+
+  <div id="node-panel" class="panel hidden"></div>
+
+  <div id="marquee" class="hidden"></div>
+  <div id="eraser-cursor" class="hidden"></div>
+
+  <div id="edge-panel" class="panel hidden"></div>
+
+  <div id="search-box" class="panel hidden">
+    <input id="search-input" type="text" placeholder="Найти узел... (Enter — перейти)" autocomplete="off">
+    <ul id="search-results"></ul>
+  </div>
+
+  <div id="banner" class="banner hidden"></div>
+  <div id="load-error" class="load-error hidden"></div>
+</div>
+
+<script type="module" src="/static/js/main.js?v=3"></script>
+</body>
+</html>

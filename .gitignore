@@ -1,0 +1,29 @@
+# InkMap v1 — только код, без личных данных и без v2
+inkmap_v2/
+data/
+*.json
+!package.json
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# node
+node_modules/
+
+# build
+dist/
+
+# секреты
+.env
+*.env
+*.key
+*.pem
+
+# система
+.DS_Store
+Thumbs.db
+*.log

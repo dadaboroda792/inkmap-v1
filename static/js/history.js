@@ -1,4 +1,4 @@
-﻿import { state, subscribe, replaceState } from './store.js';
+﻿import { state, subscribe, replaceState, markDirty } from './store.js';
 
 const MAX = 100;
 let undoStack = [];
@@ -13,6 +13,7 @@ function snapshot() {
     edges: state.edges,
     strokes: state.strokes,
     shapes: state.shapes,
+    reveal: state.reveal,
   });
 }
 
@@ -58,6 +59,7 @@ function apply(snap) {
     restoring = false;
   }
   updateButtons();
+  markDirty();
 }
 
 export function canUndo() { return undoStack.length > 0; }

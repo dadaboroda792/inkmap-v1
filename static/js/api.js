@@ -16,9 +16,10 @@ export async function createMap(name) {
 export async function getMap(name) {
   return unwrap(await fetch('/api/maps/' + encodeURIComponent(name)));
 }
-export async function saveMap(name, data) {
+export async function saveMap(name, data, opts = {}) {
   return unwrap(await fetch('/api/maps/' + encodeURIComponent(name), {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+    keepalive: Boolean(opts.keepalive),
   }));
 }
 export async function uploadImage(file) {

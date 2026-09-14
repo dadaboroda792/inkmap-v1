@@ -276,16 +276,20 @@ function boot() {
 
     let saving = false;
     let rerun = false;
+    let retryTimer = null;
     const flush = async () => {
       if (saving) { rerun = true; return; }
       saving = true;
+      clearTimeout(retryTimer); retryTimer = null;
       setStatus('dirty');
       try {
         await api.saveMap(name, store.serialize());
         setStatus('saved');
       } catch (err) {
-        banner('Не сохранено: ' + err.message);
+        banner('Не сохранено: ' + err.message + ' — повторю через 5 с');
         setStatus('err');
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(() => { flush(); }, 5000);
       } finally {
         saving = false;
         if (rerun) { rerun = false; flush(); }
@@ -297,8 +301,19 @@ function boot() {
     window.addEventListener('beforeunload', (ev) => {
       const st = document.getElementById('save-status');
       if (st && (st.classList.contains('dirty') || st.classList.contains('err'))) {
+        try {
+          api.saveMap(name, store.serialize(), { keepalive: true }).catch(() => {});
+        } catch {}
         ev.preventDefault();
         ev.returnValue = '';
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      const st = document.getElementById('save-status');
+      if (st && (st.classList.contains('dirty') || st.classList.contains('err'))) {
+        try {
+          api.saveMap(name, store.serialize(), { keepalive: true }).catch(() => {});
+        } catch {}
       }
     });
     return true;

@@ -14,10 +14,13 @@
 """
 import base64
 import hashlib
+import ipaddress
 import json
 import math
 import re
+import socket
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -306,9 +309,65 @@ def ext_for_mime(mime):
             'image/gif': '.gif', 'image/webp': '.webp'}.get(m, '.png')
 
 
+def _host_is_blocked(host):
+    """True если host — приватный/локальный/не резолвится в публичный IP."""
+    if not host:
+        return True
+    h = host.strip().strip('[]').lower()
+    if h in ('localhost',):
+        return True
+    try:
+        ip = ipaddress.ip_address(h)
+        return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified
+    except ValueError:
+        pass  # не IP-литерал — резолвим DNS
+    try:
+        infos = socket.getaddrinfo(h, None, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM)
+    except (socket.gaierror, UnicodeError):
+        return True
+    if not infos:
+        return True
+    for fam, _type, _proto, _canon, sockaddr in infos:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            return True
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified:
+            return True
+    return False
+
+
+def _checked_http_url(url):
+    """Проверяет URL картинки: только http/https на публичный хост. Возвращает parsed."""
+    try:
+        p = urllib.parse.urlparse(url.strip())
+    except Exception:
+        raise ValueError('неверный URL картинки')
+    if p.scheme.lower() not in ('http', 'https'):
+        raise ValueError('разрешены только http(s) картинки')
+    if not p.hostname or _host_is_blocked(p.hostname):
+        raise ValueError('закрытый/локальный адрес картинки')
+    if p.username or p.password:
+        raise ValueError('URL с credentials запрещён')
+    return p
+
+
+class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Блокирует редиректы на не-http(s) или приватные хосты."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        try:
+            _checked_http_url(urllib.parse.urljoin(req.full_url, newurl))
+        except ValueError as e:
+            raise urllib.error.URLError(f'запрещённый редирект: {e}')
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def fetch_url(url):
-    """(bytes, mime) — GET с таймаутом и лимитом размера."""
-    with urllib.request.urlopen(url, timeout=8) as r:
+    """(bytes, mime) — GET с таймаутом и лимитом размера. Только публичные http(s)."""
+    _checked_http_url(url)  # бросает ValueError до любого сетевого вызова
+    opener = urllib.request.build_opener(_SafeRedirectHandler)
+    with opener.open(url, timeout=8) as r:
         data = r.read(MAX_IMAGE_BYTES + 1)
         if len(data) > MAX_IMAGE_BYTES:
             raise ValueError('картинка больше 10 МБ')
@@ -318,14 +377,18 @@ def fetch_url(url):
 
 def attach_image(ref, images_dir):
     """Сохраняет картинку из ImageRef в images_dir и вешает на ноду.
-    Возвращает True. Локальные пути (kind='local') обрабатывает вызывающий код."""
+    Локальные пути (kind='local') и не-http(s) схемы отклоняются вызывающим
+    кодом как warning — без сетевых/файловых доступов."""
     images_dir = Path(images_dir)
     images_dir.mkdir(parents=True, exist_ok=True)
     data, mime = None, None
-    url = ref.url
+    url = (ref.url or '').strip()
     if url.startswith('data:'):
         data, mime = decode_data_uri(url)
     else:
+        if getattr(ref, 'kind', '') == 'local':
+            raise ValueError('локальный путь недоступен — картинка оставлена текстом')
+        # _checked_http_url внутри fetch_url отклонит file://, ftp://, C:/ и приватные IP
         data, mime = fetch_url(url)
     ext = ext_for_mime(mime)
     fname = hashlib.md5(data).hexdigest()[:16] + ext

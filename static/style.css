@@ -535,19 +535,19 @@ body.mode-text #canvas-wrap { cursor: text; }
 .group-node.collapsed .g-titlebar { padding: 4px 8px; }
 .g-fold {
   flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; padding: 0; margin-right: 5px;
-  border: 0; border-radius: 6px; background: transparent;
+  width: 28px; height: 28px; padding: 0; margin-right: 5px;
+  border: 0; border-radius: 8px; background: transparent;
   color: var(--muted); cursor: pointer;
 }
 .g-fold:hover { background: var(--accent-soft); color: var(--accent); }
 .group-node.collapsed .g-fold svg, .n-fold-chip.collapsed svg { transform: rotate(-90deg); }
 .n-fold-chip {
-  position: absolute; top: 7px; right: 7px; margin: 0; z-index: 7;
-  width: 20px; height: 20px;
+  position: absolute; top: 4px; right: 4px; margin: 0; z-index: 7;
+  width: 28px; height: 28px;
   background: color-mix(in srgb, var(--panel-solid) 72%, transparent);
   opacity: 0; transition: opacity .15s ease, background .15s ease;
 }
-.ink-node:hover .n-fold-chip, .ink-node.selected .n-fold-chip, .note-collapsed .n-fold-chip { opacity: .85; }
+.ink-node:hover .n-fold-chip, .ink-node.selected .n-fold-chip, .note-collapsed .n-fold-chip, .ink-node.has-kids .n-fold-chip { opacity: .85; }
 .ink-node.text-node .n-fold-chip, .ink-node.image-node .n-fold-chip { display: none; }
 .note-collapsed .n-note,
 .note-collapsed .n-img-wrap,

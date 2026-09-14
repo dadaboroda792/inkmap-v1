@@ -66,6 +66,9 @@ export function renderNodes(viewportEl) {
     if (!node.isGroup && !node.isText && !node.isImage) {
       const collapsed = Boolean(node.collapsed);
       el.classList.toggle('note-collapsed', collapsed);
+      el.classList.toggle('has-kids', (kidsMap.get(node.id) || []).length > 0);
+      const chip = el.querySelector('.n-fold-chip');
+      if (chip) chip.classList.toggle('collapsed', collapsed);
       const badge = el.querySelector('.n-fold-badge');
       if (badge) {
         const cnt = collapsed ? countDescendants(node.id, kidsMap) : 0;
@@ -228,6 +231,7 @@ function wireMeta(el, node) {
 function wireFold(el, node) {
   const btn = el.querySelector('.g-fold');
   btn.addEventListener('pointerdown', e => e.stopPropagation());
+  btn.addEventListener('dblclick', e => e.stopPropagation());
   btn.addEventListener('click', () => {
     updateNode(node.id, { collapsed: !node.collapsed });
     markDirty();

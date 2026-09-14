@@ -194,6 +194,8 @@ async def upload_image(file: UploadFile = File(...)):
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_IMG_EXT:
         raise HTTPException(status_code=400, detail="Only png/jpg/jpeg/gif/webp")
+    if getattr(file, 'size', None) and file.size > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="File larger than 10 MB")
     data = await file.read()
     if len(data) > MAX_IMAGE_SIZE:
         raise HTTPException(status_code=400, detail="File larger than 10 MB")
@@ -207,6 +209,8 @@ async def upload_media(file: UploadFile = File(...)):
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_MEDIA_EXT:
         raise HTTPException(status_code=400, detail="Only webm/ogg/mp3/wav/m4a/mp4")
+    if getattr(file, 'size', None) and file.size > MAX_MEDIA_SIZE:
+        raise HTTPException(status_code=400, detail="File larger than 25 MB")
     data = await file.read()
     if len(data) > MAX_MEDIA_SIZE:
         raise HTTPException(status_code=400, detail="File larger than 25 MB")
@@ -226,11 +230,16 @@ async def import_md(file: UploadFile = File(...)):
     ext = Path(file.filename or "").suffix.lower()
     if ext not in {'.md', '.markdown', '.txt'}:
         raise HTTPException(status_code=400, detail="Только .md / .markdown / .txt файлы")
+    if getattr(file, 'size', None) and file.size > 500_000:
+        raise HTTPException(status_code=400, detail="Файл слишком большой (>500 КБ)")
     text = (await file.read()).decode('utf-8', errors='replace')
     if len(text) > 500_000:
         raise HTTPException(status_code=400, detail="Файл слишком большой (>500 КБ)")
     root = mdlib.parse_text(text)
     mdlib.make_task_nodes(root)
+    if mdlib.count_nodes(root) > mdlib.MAX_NODES:
+        raise HTTPException(status_code=400,
+                            detail=f"Слишком много нод (>{mdlib.MAX_NODES}) — разбей файл")
 
     # картинки из заметок — скачиваем/декодируем и сохраняем в проект (data/images)
     warnings = []

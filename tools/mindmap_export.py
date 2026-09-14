@@ -10,6 +10,8 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from md_import_lib import (MAX_NOTE_CHARS, apply_overlay, apply_states,
                            assign_ids, build_json, chain_depth,
                            json_task_states, layout, make_task_nodes,

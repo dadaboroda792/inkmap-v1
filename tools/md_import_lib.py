@@ -52,6 +52,17 @@ SKIP_SECTIONS = {'содержание', 'contents', 'toc'}
 TASK_RE = re.compile(r'^\s*-\s*\[([ xX])\]\s+(.+?)\s*$')
 IMAGE_RE = re.compile(r'!\[([^\]]*)\]\(([^)]+)\)')
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_NODES = 2000
+
+
+def count_nodes(root):
+    """Число нод в дереве (защита от DoS через гигантские документы)."""
+    n, stack = 0, [root]
+    while stack:
+        nd = stack.pop()
+        n += 1
+        stack.extend(nd.children)
+    return n
 
 
 def norm_task_text(s):
@@ -130,7 +141,7 @@ def parse_text(text):
             if current is not None:
                 current.note.append(ln)
             continue
-        m = re.match(r'^(#{1,4})\s+(.+?)\s*#*$', ln)
+        m = re.match(r'^(#{1,4})\s+(.+?)(?:\s+#+)?\s*$', ln)
         if m and not in_fence:
             level = len(m.group(1))
             title = m.group(2).strip()
@@ -396,7 +407,9 @@ def attach_image(ref, images_dir):
     if not path.exists():
         path.write_bytes(data)
     node = ref.node
-    node.image = f'/images/{fname}'
+    # первая картинка — на ноду (см. ARCHITECTURE.md §4), остальные остаются текстом
+    if not node.image:
+        node.image = f'/images/{fname}'
     node.note = (node.note or '').replace(ref.chunk, '', 1)
     return True
 
@@ -647,9 +660,17 @@ def sync_md_file(path, desired):
     out = []
     flips = 0
     seen = set()
+    in_fence = False
     for ln in lines:
-        m = re.match(r'^(#{1,4})\s+(.+?)\s*#*$', ln)
-        if m and not ln.lstrip().startswith('```'):
+        if ln.lstrip().startswith('```'):
+            in_fence = not in_fence
+            out.append(ln)
+            continue
+        if in_fence:
+            out.append(ln)
+            continue
+        m = re.match(r'^(#{1,4})\s+(.+?)(?:\s+#+)?\s*$', ln)
+        if m:
             lvl = len(m.group(1))
             while stack and stack[-1][0] >= lvl:
                 stack.pop()

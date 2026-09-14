@@ -55,6 +55,17 @@ function boot() {
   });
   if (localStorage.getItem('inkmap-minimap') === 'off') document.getElementById('btn-mm').classList.remove('active');
 
+  // слой чернил: поверх узлов или под ними
+  const inkTopBtn = document.getElementById('btn-ink-top');
+  const applyInkTop = (on) => {
+    document.body.classList.toggle('ink-on-top', on);
+    inkTopBtn.classList.toggle('active', on);
+    inkTopBtn.title = on ? 'Чернила поверх узлов (нажми чтобы убрать под узлы)' : 'Чернила под узлами (нажми чтобы поднять поверх)';
+    try { localStorage.setItem('inkmap-ink-top', on ? '1' : '0'); } catch {}
+  };
+  applyInkTop((localStorage.getItem('inkmap-ink-top') ?? '1') === '1');
+  inkTopBtn.addEventListener('click', () => applyInkTop(!document.body.classList.contains('ink-on-top')));
+
   // текстовый режим: пустой блок удаляем
   document.addEventListener('spark:text-empty', (e) => {
     store.deleteNode(e.detail);

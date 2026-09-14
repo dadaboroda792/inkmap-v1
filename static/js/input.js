@@ -39,6 +39,7 @@ export function initInput(wrap, viewport) {
     const hidden = computeHiddenIds(state);
     const els = [...viewport.querySelectorAll('.ink-node')];
     for (let i = els.length - 1; i >= 0; i--) {
+      if (els[i].style.display === 'none') continue;
       const n = getNode(els[i].dataset.id);
       if (!n || hidden.has(n.id)) continue;
       const s = nodeSize(n, els[i]);
@@ -337,10 +338,18 @@ export function initInput(wrap, viewport) {
   });
 
   function finishLinking() {
-    const hit = linking.lastWorld ? hitNode(linking.lastWorld) : null;
+    const w = linking.lastWorld;
+    const hit = w ? hitNode(w) : null;
     if (hit && hit.node.id !== linking.from.id) {
       addEdge({ from: linking.from.id, to: hit.node.id });
       markDirty();
+    } else if (!hit && w) {
+      // отпустили в пустоте — создаём новую ноду и связываем с ней
+      const node = addNode({ x: Math.round(w.x - 110), y: Math.round(w.y - 24), title: '' });
+      addEdge({ from: linking.from.id, to: node.id });
+      markDirty();
+      select('node', node.id);
+      startTitleEdit(node);
     }
     linking.tempPath.remove();
     if (linking.targetEl) linking.targetEl.classList.remove('link-target');
@@ -459,6 +468,7 @@ export function initInput(wrap, viewport) {
       return;
     }
     if (e.key === 'Escape') {
+      if (linking) { cancelLinking(); return; }
       const t = document.activeElement;
       if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) t.blur();
       select(null);

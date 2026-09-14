@@ -143,7 +143,7 @@ function buildNodeEl(node) {
   el.dataset.id = node.id;
   if (node.isGroup) {
     el.innerHTML = `
-      <div class="g-titlebar">
+      <div class="g-titlebar" title="Тяни за полоску, чтобы двигать группу">
         <button class="g-fold" type="button" title="Свернуть / развернуть"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="n-title"></div>
       </div>
